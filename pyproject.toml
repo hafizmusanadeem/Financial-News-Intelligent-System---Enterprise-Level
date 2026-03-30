@@ -1,0 +1,16 @@
+[project]
+name = "financial-news-intelligent-system-enterprise-level"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "apache-airflow>=3.1.8",
+    "feedparser>=6.0.12",
+    "loguru>=0.7.3",
+    "newsapi-python>=0.2.7",
+    "psycopg2-binary>=2.9.11",
+    "python-dotenv>=1.2.2",
+    "requests>=2.33.0",
+    "sqlalchemy>=2.0.48",
+]
