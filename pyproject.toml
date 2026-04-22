@@ -1,7 +1,7 @@
 [project]
-name = "financial-news-intelligent-system-enterprise-level"
+name = "Financial-News-Intelligent-System---Enterprise-Level"
 version = "0.1.0"
-description = "Add your description here"
+description = "This is a financial news intelligent system made for finance analysts to reduce their workload in analyzing news and making an impactful decision."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

@@ -4,23 +4,25 @@ import time
 import os
 import ast
 from pathlib import Path
+from src.fni.core.constants import RELEVANCE_THRESHOLD, SLEEP_BETWEEN, TIME_FROM, TIME_TO, LIMIT
 
 # ============================================================
 # CONFIG — only edit this block between runs
 # ============================================================
-API_KEY = '9K5BTZTGHH2M1P76'
+# API_KEY = '9K5BTZTGHH2M1P76'
+API_KEY = os.getenv('API_alphavantage')
 TICKERS   = [
     "AAPL", "AMZN", "MSFT", "GOOGL", "NVDA",
     "META", "TSLA", "JPM", "V",    "JNJ",
     "BAC",  "WMT",  "UNH",  "XOM",  "CVX",
     "HD",   "PG",   "MA",   "ABBV", "MRK"
 ]
-TIME_FROM           = "20250101T0000"   # change each batch
-TIME_TO             = "20250401T0000"   # change each batch
-LIMIT               = 50
+TIME_FROM           = TIME_FROM   # change each batch
+TIME_TO             = TIME_TO   # change each batch
+LIMIT               = LIMIT
 SAVE_PATH           = Path("vantage/alphavantage_news.csv")
-RELEVANCE_THRESHOLD = 0.73
-SLEEP_BETWEEN       = 13               # seconds between requests
+RELEVANCE_THRESHOLD = RELEVANCE_THRESHOLD
+SLEEP_BETWEEN       = SLEEP_BETWEEN     # seconds between requests
 # ============================================================
 
 TOPIC_TO_EVENT = {

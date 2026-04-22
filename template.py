@@ -21,52 +21,39 @@ def create_structure():
         base / "README.md",
         base / "pyproject.toml",
 
-        # src package
+        # src package                                                               ✔
         base / "src" / SRC_PACKAGE / "__init__.py",
+
+        # ingestion_source
+        base / "src" / SRC_PACKAGE / "ingestion" / "sources" / "__init__.py",
+        base / "src" / SRC_PACKAGE / "ingestion" / "sources" / "alphavantage.py", # setup the connection to VA(vantage_api) and get data
 
         # ingestion
         base / "src" / SRC_PACKAGE / "ingestion" / "__init__.py",
-        base / "src" / SRC_PACKAGE / "ingestion" / "cleaner.py",
-        base / "src" / SRC_PACKAGE / "ingestion" / "validator.py",
-        base / "src" / SRC_PACKAGE / "ingestion" / "pipeline.py",
+        base / "src" / SRC_PACKAGE / "ingestion" / "cleaner.py", # To clean the data collected
+        base / "src" / SRC_PACKAGE / "ingestion" / "pipeline.py", # To run the process multiple times
 
-        # ingestion sources
-        base / "src" / SRC_PACKAGE / "ingestion" / "sources" / "__init__.py",
-        base / "src" / SRC_PACKAGE / "ingestion" / "sources" / "newsapi.py",
-        base / "src" / SRC_PACKAGE / "ingestion" / "sources" / "rss.py",
-        base / "src" / SRC_PACKAGE / "ingestion" / "sources" / "sec_edgar.py",
-
-        # database
+        # database                                                                  ✔
         base / "src" / SRC_PACKAGE / "database" / "__init__.py",
-        base / "src" / SRC_PACKAGE / "database" / "models.py",
-        base / "src" / SRC_PACKAGE / "database" / "session.py",
-        base / "src" / SRC_PACKAGE / "database" / "migrations" / ".gitkeep",
+        base / "src" / SRC_PACKAGE / "database" / "configuration.py", # To make connection with PostGreSQL
+        base / "src" / SRC_PACKAGE / "database" / "load.py", # Load the Transformed Data
+        base / "src" / SRC_PACKAGE / "database" / "migrations" / ".gitkeep", 
 
-        # monitoring
-        base / "src" / SRC_PACKAGE / "monitoring" / "__init__.py",
-        base / "src" / SRC_PACKAGE / "monitoring" / "metrics.py",
-        base / "src" / SRC_PACKAGE / "monitoring" / "logging.py",
 
-        # dags
-        base / "src" / SRC_PACKAGE / "dags" / "__init__.py",
-        base / "src" / SRC_PACKAGE / "dags" / "ingestion_dag.py",
+        # labelling
+        base / "src" / SRC_PACKAGE / "labeling" / "__init__.py",
+        base / "src" / SRC_PACKAGE / "labeling" / "event_labeler.py",
 
-        # core
+        # core                                                                      ✔ 
         base / "src" / SRC_PACKAGE / "core" / "__init__.py",
         base / "src" / SRC_PACKAGE / "core" / "config.py",
-        base / "src" / SRC_PACKAGE / "core" / "constants.py",
-        base / "src" / SRC_PACKAGE / "core" / "exceptions.py",
-
-        # services
-        base / "src" / SRC_PACKAGE / "services" / "__init__.py",
-        base / "src" / SRC_PACKAGE / "services" / "sentiment.py",
-        base / "src" / SRC_PACKAGE / "services" / "event_detection.py",
-        base / "src" / SRC_PACKAGE / "services" / "impact_scoring.py",
-        base / "src" / SRC_PACKAGE / "services" / "ranking.py",
+        base / "src" / SRC_PACKAGE / "core" / "constants.py", # Define all the constants being used in the codebase
+        base / "src" / SRC_PACKAGE / "core" / "exceptions.py", # Define the exception module
+        base / "src" / SRC_PACKAGE / "core" / "logging.py", # Define the logging module
 
         # API
         base / "src" / SRC_PACKAGE / "api" / "__init__.py",
-        base / "src" / SRC_PACKAGE / "api" / "main.py",
+        base / "src" / SRC_PACKAGE / "api" / "main.py", # Write the FastAPI endpoints
 
         # tests (outside src)
         base / "tests" / "__init__.py",
