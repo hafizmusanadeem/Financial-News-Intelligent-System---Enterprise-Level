@@ -1,11 +1,15 @@
-import requests
-import pandas as pd
-import time
 import os
 import ast
+import sys
+import time
+import requests
+import pandas as pd
 from pathlib import Path
+from fni.core.logger import get_logger
+from fni.core.exceptions import CustomException
 from src.fni.core.constants import RELEVANCE_THRESHOLD, SLEEP_BETWEEN, TIME_FROM, TIME_TO, LIMIT
 
+logger = get_logger(__name__)
 # ============================================================
 # CONFIG — only edit this block between runs
 # ============================================================

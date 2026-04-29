@@ -5,7 +5,7 @@ from datetime import datetime
 
 
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 LOG_DIR = BASE_DIR / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -53,7 +53,7 @@ class ColorFormatter(logging.Formatter):
 
 # ==========================================================
 # MAIN LOGGER SETUP
-# Call ONLY once in main.py / app.py
+# To Call ONLY once in main.py / app.py
 # ==========================================================
 def setup_logger():
     root_logger = logging.getLogger()

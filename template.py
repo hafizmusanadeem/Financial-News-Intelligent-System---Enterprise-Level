@@ -24,14 +24,21 @@ def create_structure():
         # src package                                                               ✔
         base / "src" / SRC_PACKAGE / "__init__.py",
 
-        # ingestion_source
-        base / "src" / SRC_PACKAGE / "ingestion" / "sources" / "__init__.py",
-        base / "src" / SRC_PACKAGE / "ingestion" / "sources" / "alphavantage.py", # setup the connection to VA(vantage_api) and get data
+        # etl_source (First the data is collected from the source API (AlphaVantage), more data_sources will be added in future, this is just a baseline)
+        base / "src" / SRC_PACKAGE / "etl" / "__init__.py"
+        base / "src" / SRC_PACKAGE / "etl" / "extract_from_sources" / "__init__.py",
+        base / "src" / SRC_PACKAGE / "etl" / "extract_from_sources" / "alphavantage.py", # setup the connection to VA(vantage_api) and get data
 
-        # ingestion
-        base / "src" / SRC_PACKAGE / "ingestion" / "__init__.py",
-        base / "src" / SRC_PACKAGE / "ingestion" / "cleaner.py", # To clean the data collected
-        base / "src" / SRC_PACKAGE / "ingestion" / "pipeline.py", # To run the process multiple times
+        # etl (After the data is collected, then it is cleaned and labelled from LLM)
+        base / "src" / SRC_PACKAGE / "etl" / "transform" / "__init__.py",
+        base / "src" / SRC_PACKAGE / "etl" / "transform" / "labeller_LLM" / "__init__.py",
+        base / "src" / SRC_PACKAGE / "etl" / "transform" / "labeller_LLM" / "label.py",
+        base / "src" / SRC_PACKAGE / "etl" / "transform" / "clean.py", # To clean the data collected
+
+        base / "src" / SRC_PACKAGE / "etl" / "load" / "__init__.py", 
+        base / "src" / SRC_PACKAGE / "etl" / "load" / "configuration.py", # To Set Connection with PostGreSql Database
+        base / "src" / SRC_PACKAGE / "etl" / "load" / "load.py", # To Set Connection with PostGreSql Database
+
 
         # database                                                                  ✔
         base / "src" / SRC_PACKAGE / "database" / "__init__.py",
@@ -39,17 +46,12 @@ def create_structure():
         base / "src" / SRC_PACKAGE / "database" / "load.py", # Load the Transformed Data
         base / "src" / SRC_PACKAGE / "database" / "migrations" / ".gitkeep", 
 
-
-        # labelling
-        base / "src" / SRC_PACKAGE / "labeling" / "__init__.py",
-        base / "src" / SRC_PACKAGE / "labeling" / "event_labeler.py",
-
         # core                                                                      ✔ 
         base / "src" / SRC_PACKAGE / "core" / "__init__.py",
         base / "src" / SRC_PACKAGE / "core" / "config.py",
         base / "src" / SRC_PACKAGE / "core" / "constants.py", # Define all the constants being used in the codebase
         base / "src" / SRC_PACKAGE / "core" / "exceptions.py", # Define the exception module
-        base / "src" / SRC_PACKAGE / "core" / "logging.py", # Define the logging module
+        base / "src" / SRC_PACKAGE / "core" / "logger.py", # Define the logger module
 
         # API
         base / "src" / SRC_PACKAGE / "api" / "__init__.py",
