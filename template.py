@@ -20,6 +20,8 @@ def create_structure():
         base / ".env",
         base / "README.md",
         base / "pyproject.toml",
+        base / "artifacts",
+        base / "notebook"
 
         # src package                                                               ✔
         base / "src" / SRC_PACKAGE / "__init__.py",

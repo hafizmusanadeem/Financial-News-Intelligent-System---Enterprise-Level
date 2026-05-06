@@ -10,6 +10,7 @@ dependencies = [
     "finnhub-python>=2.4.27",
     "loguru>=0.7.3",
     "newsapi-python>=0.2.7",
+    "openai>=2.33.0",
     "pandas>=3.0.2",
     "psycopg2-binary>=2.9.11",
     "pydantic-settings>=2.13.1",

@@ -3,8 +3,12 @@ import sys
 def error_message_detail(error, error_detail: sys):
     _, _, exc_tb = error_detail.exc_info()
 
-    file_name = exc_tb.tb_frame.f_code.co_filename
-    line_number = exc_tb.tb_lineno
+    if exc_tb is not None:
+        file_name = exc_tb.tb_frame.f_code.co_filename
+        line_number = exc_tb.tb_lineno
+    else:
+        file_name = "Unknown"
+        line_number = "Unknown"
 
     return (
         f"Error occurred in python script name [{file_name}] "
