@@ -35,11 +35,14 @@ def create_structure():
         base / "src" / SRC_PACKAGE / "etl" / "transform" / "__init__.py",
         base / "src" / SRC_PACKAGE / "etl" / "transform" / "labeller_LLM" / "__init__.py",
         base / "src" / SRC_PACKAGE / "etl" / "transform" / "labeller_LLM" / "label.py",
+        base / "src" / SRC_PACKAGE / "etl" / "transform" / "impact_score" / "get_impact_score.py",
         base / "src" / SRC_PACKAGE / "etl" / "transform" / "clean.py", # To clean the data collected
 
         base / "src" / SRC_PACKAGE / "etl" / "load" / "__init__.py", 
         base / "src" / SRC_PACKAGE / "etl" / "load" / "configuration.py", # To Set Connection with PostGreSql Database
         base / "src" / SRC_PACKAGE / "etl" / "load" / "load.py", # To Set Connection with PostGreSql Database
+
+        base/ "src" / SRC_PACKAGE / "etl" / "pipeline.py", # To run the whole ETL pipeline
 
 
         # database                                                                  ✔
