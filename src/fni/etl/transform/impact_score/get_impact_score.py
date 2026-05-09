@@ -1,14 +1,17 @@
 from __future__ import annotations
 
-import logging
+import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import yfinance as yf
 from pandas.tseries.offsets import BDay
+from src.fni.core.logger import setup_logger, get_logger
+from src.fni.core.exceptions import CustomException
 
-logger = logging.getLogger(__name__)
+setup_logger()
+logger = get_logger(__name__)
 
 DEFAULT_NEWS_PATH = (
     Path(__file__).resolve().parents[5]
@@ -79,7 +82,7 @@ class ImpactScoreCalculator:
                 hist["Date"] = pd.to_datetime(hist["Date"]).dt.tz_localize(None)
                 frames.append(hist[["ticker", "Date", "Close"]])
             except Exception as e:
-                logger.warning(f"yfinance error for {tkr}: {e}")
+                raise CustomException(f"Failed to fetch prices for {tkr}: {e}", sys) from e
 
         if not frames:
             raise RuntimeError("No price data fetched at all.")

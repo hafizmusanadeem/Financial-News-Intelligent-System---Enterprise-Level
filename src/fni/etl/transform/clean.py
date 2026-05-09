@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import sys
-import logging
 from pathlib import Path
-
 import pandas as pd
-
+from src.fni.core.logger import setup_logger, get_logger
 from src.fni.core.exceptions import CustomException
 
-logger = logging.getLogger(__name__)
+setup_logger()
+logger = get_logger(__name__)
 
 # ── Valid value sets (source of truth for downstream DB constraints) ──────────
 
