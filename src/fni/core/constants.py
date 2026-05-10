@@ -1,11 +1,12 @@
-# AlphaVantage Constants (used in src.fni.ingestion.sources.alphavantage.py)
-RELEVANCE_THRESHOLD = 0.6
+TICKERS_LABELS = [
+    "AAPL", "AMZN", "MSFT", "GOOGL", "NVDA",
+    "META", "TSLA", "JPM",  "V",     "JNJ",
+    "BAC",  "WMT",  "UNH",  "XOM",   "CVX",
+    "HD",   "PG",   "MA",   "ABBV",  "MRK"
+]
+
+TIME_FROM = "20230101T0000"
+TIME_TO = "20240101T0000"
+
 SLEEP_BETWEEN = 13
 LIMIT = 50
-TIME_FROM = "20250101T0000"
-TIME_TO = "20250101T0000"
-
-# DataBase PostGreSQL setup (used in src.fni.database.configuration.py)
-db_name = 'AlphaVantageNews'
-user = 'postgresql'
-password = 'admin@123'

@@ -8,6 +8,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from src.fni.core.logger import setup_logger, get_logger
 from src.fni.core.exceptions import CustomException
+from src.fni.core.constants import TICKERS_LABELS
 
 setup_logger()
 get_logger('INFO')
@@ -15,13 +16,7 @@ logger = get_logger(__name__)
 
 load_dotenv()
 
-TICKERS = [
-    "AAPL", "AMZN", "MSFT", "GOOGL", "NVDA",
-    "META", "TSLA", "JPM",  "V",     "JNJ",
-    "BAC",  "WMT",  "UNH",  "XOM",   "CVX",
-    "HD",   "PG",   "MA",   "ABBV",  "MRK"
-]
-
+TICKERS = TICKERS_LABELS
 class AlphaVantageExtractor:
 
     def __init__(

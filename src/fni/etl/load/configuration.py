@@ -17,7 +17,7 @@ def get_db_connection() -> PgConnection:
     """
     try:
         conn: PgConnection = psycopg2.connect(
-            dbname=os.getenv("DB_NAME", "fni"),
+            dbname=os.getenv("db_name", "fni"),
             user=os.getenv("DB_USER", "postgres"),
             password=os.getenv("DB_PASSWORD", ""),
             host=os.getenv("DB_HOST", "localhost"),
