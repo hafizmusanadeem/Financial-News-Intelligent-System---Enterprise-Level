@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from asyncio import run
 import sys
 from pathlib import Path
 import pandas as pd
@@ -192,3 +193,7 @@ class DataCleaner:
             f"{df['impact_tier'].value_counts().to_string()}"
         )
         return df
+
+
+if __name__ == "__main__":
+    DataCleaner(input_path=r"artifacts/transform/impact_score/impact_scores.csv", output_path=r"artifacts/transform/cleaned/clean.csv").run()

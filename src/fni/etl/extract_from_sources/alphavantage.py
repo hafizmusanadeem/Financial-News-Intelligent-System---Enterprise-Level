@@ -181,7 +181,7 @@ class AlphaVantageExtractor:
 if __name__ == "__main__":
     extractor = AlphaVantageExtractor(
         tickers=TICKERS,
-        time_from="20260101T0000",
-        time_to="20260105T0000"
+        time_from="20240101T0000",
+        time_to="20250101T0000"
     )
     extractor.run()
