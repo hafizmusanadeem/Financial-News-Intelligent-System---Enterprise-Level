@@ -1,199 +1,147 @@
-from __future__ import annotations
+"""
+src/fni/etl/transform/clean.py
 
-from asyncio import run
+Post-extraction cleaning utilities.
+
+NOTE ON DESIGN:
+    Basic normalisation (column selection, datetime parsing) is intentionally
+    done inside AlphaVantageExtractor._process_raw_df() so the extractor always
+    produces a consistent schema regardless of caller.
+
+    This module handles *additional* cleaning that runs after extraction and
+    before LLM labelling:
+        - Drop rows with null title/summary (LLM input would be meaningless)
+        - Strip whitespace from text columns
+        - Deduplicate on (ticker, title) if extractor dedup was bypassed
+        - Enforce correct dtypes before the labeller reads the CSV
+
+    It is called by pipeline.py as an explicit stage between extract and label.
+"""
+
+import ast
 import sys
-from pathlib import Path
+from typing import Any
+
 import pandas as pd
-from src.fni.core.logger import setup_logger, get_logger
+
+from src.fni.core.logger import get_logger
 from src.fni.core.exceptions import CustomException
 
-setup_logger()
 logger = get_logger(__name__)
 
-# ── Valid value sets (source of truth for downstream DB constraints) ──────────
 
-VALID_EVENT_LABELS: frozenset[str] = frozenset({
-    "Earnings", "Merger/Acquisition", "Product Launch",
-    "Regulatory/Legal", "Market Movement", "Leadership Change",
-    "Economic Data", "Fed Monetary Policy", "Other",
-})
+# ── Helpers (used by both this module and impact_score) ──────────────────────
 
-VALID_IMPACT_TIERS: frozenset[str] = frozenset({
-    "Low", "Medium", "High", "Critical",
-})
+def parse_if_string(val: Any) -> list[Any]:
+    """Safely parse a stringified list/dict back to a Python object."""
+    if isinstance(val, str):
+        try:
+            return ast.literal_eval(val)  # type: ignore[return-value]
+        except (ValueError, SyntaxError):
+            return []
+    return val if val is not None else []
 
-VALID_IMPACT_DIRECTIONS: frozenset[str] = frozenset({
-    "Positive", "Negative", "Neutral",
-})
 
-VALID_SENTIMENT_LABELS: frozenset[str] = frozenset({
-    "Bullish", "Somewhat-Bullish", "Neutral",
-    "Somewhat-Bearish", "Bearish",
-})
+def get_target_relevance(ticker_sentiment: Any, target_ticker: str) -> float:
+    for item in parse_if_string(ticker_sentiment):
+        if isinstance(item, dict) and item.get("ticker") == target_ticker:
+            return float(item.get("relevance_score", 0.0))
+    return 0.0
 
-# ── Expected schema — col: (pandas_dtype, nullable) ──────────────────────────
 
-SCHEMA: dict[str, tuple[str, bool]] = {
-    "ticker":                   ("object",   False),
-    "time_published":           ("datetime", False),
-    "news_date":                ("date",     False),
-    "effective_date":           ("date",     False),
-    "day0_date":                ("date",     False),
-    "day1_date":                ("date",     False),
-    "day0_close_stock":         ("float64",  False),
-    "day1_close_stock":         ("float64",  False),
-    "stock_return":             ("float64",  False),
-    "spy_return":               ("float64",  False),
-    "abnormal_return":          ("float64",  False),
-    "ar_score":                 ("float64",  False),
-    "sentiment_score":          ("float64",  False),
-    "category_score":           ("float64",  False),
-    "impact_score":             ("float64",  False),
-    "impact_tier":              ("category", False),
-    "impact_direction":         ("category", False),
-    "event_label":              ("category", False),
-    "title":                    ("object",   False),
-    "summary":                  ("object",   False),
-    "source":                   ("object",   False),
-    "overall_sentiment_label":  ("category", False),
-}
-
+# ── Cleaner ───────────────────────────────────────────────────────────────────
 
 class DataCleaner:
-    def __init__(self, input_path: str, output_path: str) -> None:
-        self.input_path  = Path(input_path)
-        self.output_path = Path(output_path)
+    """
+    Cleans the raw interim CSV produced by AlphaVantageExtractor.
 
-    # ── Steps ─────────────────────────────────────────────────────────────
+    Responsibilities (only things NOT already done by the extractor):
+        1. Drop rows where title or summary is null / empty string
+        2. Strip leading/trailing whitespace from text columns
+        3. Remove exact-duplicate (ticker, title) pairs that slipped through
+        4. Re-cast overall_sentiment_score to float (read_csv may infer object)
+        5. Log a cleaning summary for audit purposes
+    """
+
+    TEXT_COLS: list[str] = ["title", "summary", "source"]
+    REQUIRED_COLS: list[str] = ["ticker", "title", "summary", "time_published"]
+
+    def __init__(self, input_path: str, output_path: str) -> None:
+        self.input_path = input_path
+        self.output_path = output_path
+
+    # ── Internal ──────────────────────────────────────────────────────────────
 
     def _load(self) -> pd.DataFrame:
         try:
             df = pd.read_csv(self.input_path)
-            logger.info(f"Loaded — shape: {df.shape}")
+            logger.info(f"[CLEAN] Loaded {len(df)} rows from {self.input_path}")
             return df
         except Exception as e:
-            raise CustomException(f"Failed to load: {e}", sys)
+            raise CustomException(f"DataCleaner failed to load input: {e}", sys) from e
 
-    def _check_required_columns(self, df: pd.DataFrame) -> None:
-        missing = set(SCHEMA.keys()) - set(df.columns)
+    def _validate_schema(self, df: pd.DataFrame) -> None:
+        missing = [c for c in self.REQUIRED_COLS if c not in df.columns]
         if missing:
-            raise CustomException(f"Missing required columns: {missing}", sys)
-
-    def _cast_types(self, df: pd.DataFrame) -> pd.DataFrame:
-        try:
-            # Timestamps
-            df["time_published"] = pd.to_datetime(
-                df["time_published"], utc=True, errors="raise"
-            )
-
-            # Date-only columns — cast from string/datetime → date
-            for col in ("news_date", "effective_date", "day0_date", "day1_date"):
-                df[col] = pd.to_datetime(df[col], errors="raise").dt.date
-
-            # Categoricals
-            for col in ("impact_tier", "impact_direction", "event_label",
-                        "overall_sentiment_label"):
-                df[col] = df[col].astype("category")
-
-            # Floats — enforce precision (6 dp is sufficient for returns)
-            for col in ("day0_close_stock", "day1_close_stock", "stock_return",
-                        "spy_return", "abnormal_return", "ar_score",
-                        "sentiment_score", "category_score", "impact_score"):
-                df[col] = df[col].round(6).astype("float64")
-
-            logger.info("Type casting complete.")
-            return df
-
-        except Exception as e:
-            raise CustomException(f"Type casting failed: {e}", sys)
-
-    def _validate_categoricals(self, df: pd.DataFrame) -> pd.DataFrame:
-        checks: dict[str, frozenset[str]] = {
-            "event_label":             VALID_EVENT_LABELS,
-            "impact_tier":             VALID_IMPACT_TIERS,
-            "impact_direction":        VALID_IMPACT_DIRECTIONS,
-            "overall_sentiment_label": VALID_SENTIMENT_LABELS,
-        }
-
-        for col, valid_set in checks.items():
-            actual = set(df[col].astype(str).unique())
-            invalid = actual - valid_set
-            if invalid:
-                # Log and quarantine — do NOT silently drop
-                bad_rows = df[df[col].astype(str).isin(invalid)]
-                logger.warning(
-                    f"Column '{col}' has {len(bad_rows)} rows with invalid values: "
-                    f"{invalid} — these rows will be quarantined."
-                )
-                df = df[~df[col].astype(str).isin(invalid)].copy()
-
-        logger.info("Categorical validation complete.")
-        return df
-
-    def _validate_numeric_ranges(self, df: pd.DataFrame) -> pd.DataFrame:
-        # Scores must be in [0, 1]
-        for col in ("ar_score", "sentiment_score", "category_score", "impact_score"):
-            out_of_range = df[(df[col] < 0.0) | (df[col] > 1.0)]
-            if not out_of_range.empty:
-                raise CustomException(
-                    f"Column '{col}' has {len(out_of_range)} values outside [0, 1]. "
-                    f"Fix upstream in impact score calculation.", sys
-                )
-
-        # Date ordering: day0 must precede day1
-        day0 = pd.to_datetime(df["day0_date"].astype(str))
-        day1 = pd.to_datetime(df["day1_date"].astype(str))
-        if (day0 >= day1).any():
             raise CustomException(
-                "day0_date >= day1_date detected — price alignment is broken.", sys
+                f"[CLEAN] Input CSV is missing required columns: {missing}", sys
             )
 
-        logger.info("Numeric range validation complete.")
-        return df
+    def _clean(self, df: pd.DataFrame) -> pd.DataFrame:
+        rows_in = len(df)
 
-    def _enforce_nullability(self, df: pd.DataFrame) -> pd.DataFrame:
-        non_nullable = [col for col, (_, nullable) in SCHEMA.items() if not nullable]
-        null_counts = df[non_nullable].isnull().sum()
-        cols_with_nulls = null_counts[null_counts > 0]
+        # 1. Strip whitespace on text columns
+        for col in self.TEXT_COLS:
+            if col in df.columns:
+                df[col] = df[col].astype(str).str.strip()
 
-        if not cols_with_nulls.empty:
-            raise CustomException(
-                f"Unexpected nulls in non-nullable columns:\n{cols_with_nulls.to_string()}",
-                sys,
+        # 2. Drop rows with empty/null title or summary
+        #    (LLM labeller would receive empty prompts — no value in keeping them)
+        df = df[
+            df["title"].notna() & (df["title"] != "") & (df["title"] != "nan") &
+            df["summary"].notna() & (df["summary"] != "") & (df["summary"] != "nan")
+        ].reset_index(drop=True)
+        dropped_null = rows_in - len(df)
+
+        # 3. Deduplicate on (ticker, title) — covers any edge case from extractor
+        before_dedup = len(df)
+        df = df.drop_duplicates(subset=["ticker", "title"]).reset_index(drop=True)
+        dropped_dedup = before_dedup - len(df)
+
+        # 4. Re-cast sentiment score
+        if "overall_sentiment_score" in df.columns:
+            df["overall_sentiment_score"] = pd.to_numeric(
+                df["overall_sentiment_score"], errors="coerce"
             )
 
-        logger.info("Null enforcement complete.")
+        # 5. Ensure time_published is parsed correctly
+        df["time_published"] = pd.to_datetime(
+            df["time_published"], errors="coerce"
+        )
+        dropped_ts = df["time_published"].isna().sum()
+        df = df.dropna(subset=["time_published"]).reset_index(drop=True)
+
+        logger.info(
+            f"[CLEAN] rows_in={rows_in} | dropped_null={dropped_null} | "
+            f"dropped_dedup={dropped_dedup} | dropped_bad_ts={dropped_ts} | "
+            f"rows_out={len(df)}"
+        )
         return df
 
     def _save(self, df: pd.DataFrame) -> None:
         try:
-            self.output_path.parent.mkdir(parents=True, exist_ok=True)
-            # Save with consistent date format for downstream loader
+            import pathlib
+            pathlib.Path(self.output_path).parent.mkdir(parents=True, exist_ok=True)
             df.to_csv(self.output_path, index=False)
-            logger.info(
-                f"Clean dataset saved — shape: {df.shape} | path: {self.output_path}"
-            )
+            logger.info(f"[CLEAN] Saved {len(df)} clean rows → {self.output_path}")
         except Exception as e:
-            raise CustomException(f"Failed to save clean output: {e}", sys)
+            raise CustomException(f"DataCleaner failed to save output: {e}", sys) from e
 
-    # ── Entry point ───────────────────────────────────────────────────────
+    # ── Public API ────────────────────────────────────────────────────────────
 
     def run(self) -> pd.DataFrame:
         df = self._load()
-        self._check_required_columns(df)
-        df = self._cast_types(df)
-        df = self._validate_categoricals(df)
-        df = self._validate_numeric_ranges(df)
-        df = self._enforce_nullability(df)
-        self._save(df)
-
-        logger.info(
-            f"Clean run complete — {len(df)} rows ready for load.\n"
-            f"Impact tier distribution:\n"
-            f"{df['impact_tier'].value_counts().to_string()}"
-        )
-        return df
-
-
-if __name__ == "__main__":
-    DataCleaner(input_path=r"artifacts/transform/impact_score/impact_scores.csv", output_path=r"artifacts/transform/cleaned/clean.csv").run()
+        self._validate_schema(df)
+        df_clean = self._clean(df)
+        self._save(df_clean)
+        return df_clean
