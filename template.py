@@ -60,11 +60,16 @@ def create_structure():
 
         # API
         base / "src" / SRC_PACKAGE / "api" / "__init__.py",
-        base / "src" / SRC_PACKAGE / "api" / "main.py", # Write the FastAPI endpoints
+        base / "src" / SRC_PACKAGE / "api" / "main.py", # Write the FastAPI endpoints / app factory + lifespan  + middleware
+        base / "src" / SRC_PACKAGE / "api" / "dependencies.py", # DB pool as FASTAPI dependency
+        base / "src" / SRC_PACKAGE / "api" / "db" / "queries.py",
+        base / "src" / SRC_PACKAGE / "api" / "routes" / "health.py",
+        base / "src" / SRC_PACKAGE / "api" / "routes" / "analytics.py",
+        base / "src" / SRC_PACKAGE / "api" / "routes" / "news.py",
 
         # tests (outside src)
         base / "tests" / "__init__.py",
-        base / "tests" / "test_ingestion.py",
+        base / "tests" / "test_ingestion.py"
     ]
 
     for path in structure:
